@@ -1,0 +1,9 @@
+default:
+    suites:
+        ilt:
+            endpoint: http://localhost:8000
+            paths:
+                - ./features
+            contexts:
+                - \LegalThings\LiveContracts\Tester\EventChainContext
+                - \LegalThings\LiveContracts\Tester\ProcessContext

@@ -1,0 +1,27 @@
+{
+    "name": "legalthings/livecontracts-tester",
+    "description": "Test Live Contracts with Gherkin BDD tests",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "LegalThings",
+            "email": "info@legalthings.io"
+        }
+    ],
+    "bin": [
+      "bin/lctest"
+    ],
+    "require": {
+        "php": "^7.1",
+        "behat/behat": "^3.4",
+        "legalthings/lto-api": "dev-php7",
+        "jasny/dotkey": "^1.0",
+        "guzzlehttp/guzzle": "~6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LegalThings\\LiveContracts\\Tester\\": "src/"
+        }
+    }
+}
