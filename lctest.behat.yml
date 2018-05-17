@@ -3,6 +3,7 @@ default:
         ilt:
             endpoint: http://localhost:8000
             paths:
+                - ./
                 - ./features
             contexts:
                 - \LegalThings\LiveContracts\Tester\EventChainContext

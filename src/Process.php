@@ -38,14 +38,27 @@ class Process
      */
     protected $chain;
 
+    /**
+     * @var array
+     */
+    protected $projection;
+
+    /**
+     * The hash of last event of the chain when the projection was fetched
+     * @var string
+     */
+    protected $eventAtProjection;
+
 
     /**
      * Process constructor.
+     *
      * @param EventChain $chain
      */
     public function __construct(EventChain $chain)
     {
         $this->chain = $chain;
+        $this->id = new $chain->createProjectionId();
     }
 
 
@@ -91,7 +104,7 @@ class Process
      * @return array
      * @throws BadMethodCallException if the scenario is not set
      */
-    public function createResponse(string $actionKey, string $actor, ?string $response, $data): array
+    public function createResponse(string $actionKey, string $actor, ?string $response, $data = null): array
     {
         $response = [
             'process' => [
@@ -112,5 +125,27 @@ class Process
         }
 
         return $response;
+    }
+
+
+    /**
+     * Get the projection of the process
+     *
+     * @return array|null
+     */
+    public function getProjection(): ?array
+    {
+        return $this->eventAtProjection === $this->chain->getLatestHash() ? $this->projection : null;
+    }
+
+    /**
+     * Set the projection of the process
+     *
+     * @param array $projection
+     */
+    public function setProjection(array $projection)
+    {
+        $this->projection = $projection;
+        $this->eventAtProjection === $this->chain->getLatestHash();
     }
 }

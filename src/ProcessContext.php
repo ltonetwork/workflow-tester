@@ -10,15 +10,18 @@ use Behat\Gherkin\Node\TableNode;
 use LTO\Account;
 use LTO\Event;
 use LTO\EventChain;
+use LegalThings\LiveContracts\Tester\BehatInputConversion;
 use LegalThings\LiveContracts\Tester\EventChainContext;
 use LegalThings\LiveContracts\Tester\Process;
-use Jasny\DotKey;
+use LegalThings\LiveContracts\Tester\Assert;
 
 /**
  * Defines application features from the specific context.
  */
 class ProcessContext implements Context
 {
+    use BehatInputConversion;
+
     /**
      * @var EventChainContext
      */
@@ -34,7 +37,6 @@ class ProcessContext implements Context
      */
     protected $processes;
 
-
     /**
      * Get event related contexts
      *
@@ -47,7 +49,8 @@ class ProcessContext implements Context
         $this->chainContext = $environment->getContext(EventChainContext::class);
 
         $paths = $environment->getSuite()->getSetting('paths');
-        $this->basePath = dirname($paths[0]);
+        $curPath = realpath($paths[0]);
+        $this->basePath = preg_replace('~/features$~', '', $curPath);
     }
 
     /**
@@ -67,23 +70,28 @@ class ProcessContext implements Context
     }
 
     /**
-     * Convert table to structured data
+     * Get the projection of a process
+     *
+     * @param Process $process
+     * @return array
      */
-    protected function tableToJson(TableNode $table)
+    public function getProjection(Process $process): array
     {
-        $data = [];
-        $dotkey = DotKey::on($data);
+        $projection = $process->getProjection();
 
-        foreach ($table->getTable() as $item) {
-            $dotkey->put($item[0], $item[1]);
+        if (!isset($projection)) {
+            $response = EventChainContext::$httpClient->get('/processes/' . $process->id);
+            $projection = json_decode($response->getBody());
+
+            $process->setProjection($projection);
         }
 
-        return $data;
+        return $projection;
     }
 
 
     /**
-     * @Given ":accountRef" creates the ":processRef" process using scenario ":scenarioRef"
+     * @Given :accountRef creates the :processRef process using scenario :scenarioRef
      *
      * @param string $accountRef
      * @param string $processRef
@@ -100,10 +108,10 @@ class ProcessContext implements Context
     }
 
     /**
-     * @Given the ":processRef" process has id ":id"
+     * @Given the :processRef process has id :id
      *
      * @param string $processRef
-     * @param string $scenarioRef
+     * @param string $processId
      */
     public function setProcessId(string $processRef, string $processId)
     {
@@ -111,7 +119,7 @@ class ProcessContext implements Context
     }
 
     /**
-     * @Given ":accountRef" is the ":actor" actor of the ":processRef" process
+     * @Given :accountRef is the :actor actor of the :processRef process
      *
      * @param string $accountRef
      * @param string $actor
@@ -125,10 +133,32 @@ class ProcessContext implements Context
     }
 
     /**
-     * @When ":accountRef" runs the ":actionKey" action of the ":processRef" process with:
-     * @When ":accountRef" runs the ":actionKey" action of the ":processRef" process as ":actor" with:
-     * @When ":accountRef" responds with ":responseKey" on the ":actionKey" action of the ":processRef" process with:
-     * @When ":accountRef" responds with ":responseKey" on the ":actionKey" action of the ":processRef" process as ":actor" with:
+     * @When :accountRef runs the :actionKey action of the :processRef process
+     * @When :accountRef runs the :actionKey action of the :processRef process as :actor
+     * @When :accountRef runs the :actionKey action of the :processRef process giving an :responseKey response
+     * @When :accountRef runs the :actionKey action of the :processRef process giving an :responseKey response as :actor
+     *
+     * @param string $accountRef
+     * @param string $actionKey
+     * @param string $processRef
+     * @param string|null $actor
+     * @parma string|null $responseKey
+     */
+    public function runAction(
+        string $accountRef,
+        string $actionKey,
+        string $processRef,
+        ?string $actor = null,
+        ?string $responseKey = null
+    ) {
+        $this->runActionWithData($accountRef, $actionKey, $processRef, $actor, $responseKey);
+    }
+
+    /**
+     * @When :accountRef runs the :actionKey action of the :processRef process with:
+     * @When :accountRef runs the :actionKey action of the :processRef process as :actor with:
+     * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response with:
+     * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response as :actor with:
      *
      * @param string $accountRef
      * @param string $actionKey
@@ -138,7 +168,7 @@ class ProcessContext implements Context
      * @param TableNode|null $table
      * @param PyStringNode|null $markdown
      */
-    public function runAction(
+    public function runActionWithData(
         string $accountRef,
         string $actionKey,
         string $processRef,
@@ -156,12 +186,7 @@ class ProcessContext implements Context
             throw new ContextException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
         }
 
-        if (isset($table)) {
-            $data = $this->tableToJson($table);
-        } else {
-            $data = isset($markdown) ? json_decode($markdown->getRaw()) : null;
-        }
-
+        $data = $this->convertInputToData($table, $markdown);
         $response = $process->createResponse($actionKey, $actor, $responseKey, $data);
 
         $chain = $this->chainContext->getChain();
@@ -171,30 +196,73 @@ class ProcessContext implements Context
     }
 
     /**
-     * @Then the ":processRef" process has asset ":assetKey" with:
+     * @Then the :processRef process has asset :assetKey
+     * @Then the :processRef process has asset :assetKey with:
      *
      * @param string $processRef
      * @param string $assetKey
      * @param TableNode|null $table
-     * @param PyStringNode|null $markdown
      */
-    public function checkAsset(
-        string $processRef,
-        string $assetKey,
-        ?TableNode $table = null,
-        ?PyStringNode $markdown = null
-    ) {
-        //$projection = $this->getProcess($processRef)->getProjection();
+    public function checkAsset(string $processRef, string $assetKey, ?TableNode $table = null)
+    {
+        $process = $this->getProcess($processRef);
+        $projection = $this->getProjection($process);
+
+        Assert::assertArrayHasKey($assetKey, $projection['assets']);
+
+        if (isset($table)) {
+            Assert::assertArrayByDotkey($this->tableToPairs($table), $projection['assets'][$assetKey]);
+        }
     }
 
     /**
-     * @Then the ":processRef" process is in the ":state" state
+     * @Then :label is in the history of the :processRef process
+     *
+     * @param string $processRef
+     * @param string $label
+     */
+    public function hasInHistory(string $processRef, string $label)
+    {
+        $process = $this->getProcess($processRef);
+        $projection = $this->getProjection($process);
+
+        Assert::assertArrayByDotkey(compact('label'), $projection['previous']);
+    }
+
+    /**
+     * @Then the :processRef process is in the :state state
      *
      * @param string $processRef
      * @param string $state
      */
     public function checkState(string $processRef, string $state)
     {
-        // TODO
+        $process = $this->getProcess($processRef);
+        $projection = $this->getProjection($process);
+
+        Assert::assertArrayHasKey('current', $projection);
+        Assert::assertSame($projection['current']['key'], $state);
+    }
+
+    /**
+     * @Then the :processRef process is completed
+     *
+     * @param string $processRef
+     * @param string $state
+     */
+    public function checkCompleted(string $processRef, string $state)
+    {
+        $this->checkState($processRef, ':success');
+    }
+
+    /**
+     * @Then the :processRef process has failed
+     *
+     * @param string $processRef
+     * @param string $state
+     */
+    public function checkFailed(string $processRef, string $state)
+    {
+        $this->checkState($processRef, ':failed');
     }
 }
