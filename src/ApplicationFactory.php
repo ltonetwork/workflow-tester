@@ -111,7 +111,38 @@ final class ApplicationFactory extends BaseFactory
      */
     protected function getConfigPath()
     {
-        return dirname(__DIR__) . DIRECTORY_SEPARATOR . '/lctest.behat.yml';
+        $cwd = rtrim(getcwd(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $homeDir = getenv('HOME');
+        $defaultDir = dirname(__DIR__) . DIRECTORY_SEPARATOR;
+
+        $paths = array_merge(
+            [
+                $cwd . 'behat.yaml',
+                $cwd . 'behat.yml',
+                $cwd . 'lctest.behat.yaml',
+                $cwd . 'lctest.behat.yml'
+            ],
+            !empty($homeDir) ? [
+                $homeDir . 'behat.yaml',
+                $homeDir . 'behat.yml',
+                $homeDir . 'lctest.behat.yaml',
+                $homeDir . 'lctest.behat.yml'
+            ] : [],
+            [
+                $defaultDir . 'behat.yaml',
+                $defaultDir . 'behat.yml',
+                $defaultDir . 'lctest.behat.yaml',
+                $defaultDir . 'lctest.behat.yml',
+            ]
+        );
+
+        foreach ($paths as $path) {
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     /**

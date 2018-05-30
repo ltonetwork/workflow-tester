@@ -24,7 +24,7 @@ class Process
     public $id;
 
     /**
-     * @var \stdClass
+     * @var array
      */
     public $scenario;
 
@@ -58,7 +58,7 @@ class Process
     public function __construct(EventChain $chain)
     {
         $this->chain = $chain;
-        $this->id = new $chain->createProjectionId();
+        $this->id = $chain->createProjectionId();
     }
 
 
@@ -99,30 +99,35 @@ class Process
      *
      * @param string $actionKey
      * @param string $actor
-     * @param string $response
+     * @param string $key
      * @param mixed  $data
      * @return array
      * @throws BadMethodCallException if the scenario is not set
      */
-    public function createResponse(string $actionKey, string $actor, ?string $response, $data = null): array
+    public function createResponse(string $actionKey, string $actor, ?string $key, $data = null): array
     {
+        if (!isset($key)) {
+            $key = $this->scenario->actions->$actionKey->default_response ?? 'ok';
+        }
+
         $response = [
+            '$schema' => 'https://specs.livecontracts.io/v0.1.0/response/schema.json#',
             'process' => [
-                'id' => $this->id
+                'id' => 'lt:/processes/' . $this->id,
+                'scenario' => [
+                    'id' => $this->scenario->id ?? null
+                ]
             ],
             'action' => [
                 'key' => $actionKey
             ],
             'actor' => [
-                'key' => $actor
+                'key' => $actor,
+                'id' => $this->actors[$actor]->id
             ],
-            'key' => $response,
+            'key' => $key,
             'data' => $data
         ];
-
-        if (isset($this->scenario)) {
-            $response['process']['scenario'] = ['id' => $this->scenario->id];
-        }
 
         return $response;
     }

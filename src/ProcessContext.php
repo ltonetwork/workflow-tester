@@ -3,10 +3,11 @@
 namespace LegalThings\LiveContracts\Tester;
 
 use Behat\Behat\Context\Context;
-use Behat\Behat\Context\Exception as ContextException;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
+use Behat\Behat\Tester\Exception\FeatureHasNoBackgroundException;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
+use UnexpectedValueException;
 use LTO\Account;
 use LTO\Event;
 use LTO\EventChain;
@@ -80,8 +81,18 @@ class ProcessContext implements Context
         $projection = $process->getProjection();
 
         if (!isset($projection)) {
-            $response = EventChainContext::$httpClient->get('/processes/' . $process->id);
+            $response = EventChainContext::$httpClient->get('flow/processes/' . $process->id);
+            list($contentType) = explode(';', $response->getHeaderLine('Content-Type'));
+
+            if ($contentType !== 'application/json') {
+                throw new UnexpectedValueException("Expected application/json, got $contentType");
+            }
+
             $projection = json_decode($response->getBody());
+
+            if (!isset($projection)) {
+                throw new UnexpectedValueException("Response is not not valid JSON");
+            }
 
             $process->setProjection($projection);
         }
@@ -104,11 +115,14 @@ class ProcessContext implements Context
 
         $process->loadScenario($scenarioRef, $this->basePath);
 
-        $this->chainContext->getChain()->add(new Event($process->scenario))->signWith($account);
+        $event = new Event($process->scenario);
+        $this->chainContext->getChain()->add($event)->signWith($account);
+
+        $process->scenario->id .= '?v=' . $event->getResourceVersion();
     }
 
     /**
-     * @Given the :processRef process has id :id
+     * @Given the :processRef process has id :processId
      *
      * @param string $processRef
      * @param string $processId
@@ -183,7 +197,7 @@ class ProcessContext implements Context
         if (!isset($actor)) {
             $actor = array_search($account, $process->actors, true);
         } elseif (($process->actors[$actor] ?? null) !== $account) {
-            throw new ContextException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
+            throw new FeatureHasNoBackgroundException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
         }
 
         $data = $this->convertInputToData($table, $markdown);

@@ -3,6 +3,7 @@
 namespace LegalThings\LiveContracts\Tester;
 
 use LTO\EventChain as Base;
+use stdClass;
 
 /**
  * Event chain with projection
@@ -10,7 +11,7 @@ use LTO\EventChain as Base;
 class EventChain extends Base
 {
     /**
-     * @var array
+     * @var stdClass
      */
     protected $projection;
 
@@ -26,7 +27,7 @@ class EventChain extends Base
      *
      * @return array|null
      */
-    public function getProjection(): ?array
+    public function getProjection(): ?stdClass
     {
         return $this->eventAtProjection === $this->getLatestHash() ? $this->projection : null;
     }
@@ -34,11 +35,12 @@ class EventChain extends Base
     /**
      * Set the projection of the event chain
      *
-     * @param array $projection
+     * @param stdClass $projection
+     * @return void
      */
-    public function setProjection(array $projection)
+    public function setProjection(stdClass $projection): void
     {
         $this->projection = $projection;
-        $this->eventAtProjection === $this->getLatestHash();
+        $this->eventAtProjection = $this->getLatestHash();
     }
 }

@@ -1,10 +1,16 @@
 default:
     suites:
-        ilt:
-            endpoint: http://localhost:8000
+        default:
+            endpoint: http://localhost:3000/api/
             paths:
                 - ./
                 - ./features
             contexts:
+                - \LegalThings\LiveContracts\Tester\DBContext
                 - \LegalThings\LiveContracts\Tester\EventChainContext
                 - \LegalThings\LiveContracts\Tester\ProcessContext
+            db:
+                dsn: mongodb://localhost:27747
+                databases:
+                  - legalflow
+                  - legalevents
