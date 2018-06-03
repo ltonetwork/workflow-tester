@@ -36,14 +36,14 @@ trait BehatInputConversion
      */
     protected function tableToData(TableNode $table)
     {
-        $data = [];
+        $data = (object)[];
         $dotkey = DotKey::on($data);
 
         foreach ($table->getTable() as $item) {
             $dotkey->put($item[0], $item[1]);
         }
 
-        return $data;
+        return (array)$data;
     }
 
     /**

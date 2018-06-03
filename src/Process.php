@@ -12,6 +12,7 @@ use LTO\Account;
 use LTO\EventChain;
 use BadMethodCallException;
 use RuntimeException;
+use OutOfBoundsException;
 
 /**
  * Representation of a Live Contracts process
@@ -106,6 +107,10 @@ class Process
      */
     public function createResponse(string $actionKey, string $actor, ?string $key, $data = null): array
     {
+        if (!isset($this->actors[$actor])) {
+            throw new OutOfBoundsException("Actor '$actor' is not present in process");
+        }
+
         if (!isset($key)) {
             $key = $this->scenario->actions->$actionKey->default_response ?? 'ok';
         }

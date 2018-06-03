@@ -39,6 +39,11 @@ class EventChainContext implements Context
     public static $httpClient;
 
     /**
+     * @var string
+     */
+    protected static $systemSignKey;
+
+    /**
      * @var AccountFactory
      */
     public $accountFactory;
@@ -106,7 +111,7 @@ class EventChainContext implements Context
             return function(RequestInterface $request, $options) use ($handler) {
                 return $handler($request, $options)->then(function($response) {
                     if ($response->getStatusCode() >= 400) {
-                        echo (string)$response->getBody();
+                        echo "Bad Request: ", (string)$response->getBody();
                     }
                     return $response;
                 });
@@ -115,8 +120,9 @@ class EventChainContext implements Context
 
         self::$httpClient = new HttpClient(['base_uri' => $endpoint, 'handler' => $stack]);
 
-        // Test connection
-        self::$httpClient->get('/');
+        $response = self::$httpClient->get('events/');
+        $data = json_decode($response->getBody());
+        static::$systemSignKey = $data->signkey;
     }
 
     /**
@@ -173,7 +179,9 @@ class EventChainContext implements Context
             throw new UnexpectedValueException("Response is not not valid JSON");
         }
 
-        $this->getChain()->setProjection($projection);
+        $chain = $this->getChain();
+        $chain->update($projection);
+        $chain->linkIdentities($this->accounts);
     }
 
     /**
@@ -208,7 +216,7 @@ class EventChainContext implements Context
             "node" => "amqps://localhost",
             "signkeys" => [
                 "user" => $account->getPublicSignKey(),
-                "system" => $account->getPublicSignKey()
+                "system" => static::$systemSignKey
             ],
             "encryptkey" => $account->getPublicEncryptKey()
         ];
@@ -268,12 +276,11 @@ class EventChainContext implements Context
     {
         $account = $this->getAccount($accountRef);
 
-        $projection = $this->chain->getProjection();
-        if (!isset($projection)) {
+        if (!$this->chain->isSynced()) {
             throw new SuiteException("the chain has unsubmitted events", self::$suiteName);
         }
 
-        $identity = array_reduce($projection->identities, function($found, $identity) use ($account) {
+        $identity = array_reduce($this->chain->identities, function($found, $identity) use ($account) {
             return $found ?? ($identity->signkeys->user === $account->getPublicSignKey() ? $identity : null);
         }, null);
 

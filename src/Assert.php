@@ -16,15 +16,19 @@ abstract class Assert extends Base
     /**
      * Assert array using dotkey notation.
      *
-     * @param array $expected
-     * @param array $array
+     * @param array        $expected
+     * @param array|object $target
      */
-    public static function assertArrayByDotkey(array $expected, array $array)
+    public static function assertArrayByDotkey(array $expected, $target)
     {
-        $dotkey = DotKey::on($array);
+        $dotkey = DotKey::on($target);
+
+        $actual = [];
 
         foreach ($expected as $key => $value) {
-            self::assertEquals($value, $dotkey->get($key));
+            $actual[$key] = $dotkey->get($key);
         }
+
+        self::assertEquals($expected, $actual);
     }
 }

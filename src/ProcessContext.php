@@ -4,7 +4,6 @@ namespace LegalThings\LiveContracts\Tester;
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
-use Behat\Behat\Tester\Exception\FeatureHasNoBackgroundException;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use UnexpectedValueException;
@@ -15,6 +14,7 @@ use LegalThings\LiveContracts\Tester\BehatInputConversion;
 use LegalThings\LiveContracts\Tester\EventChainContext;
 use LegalThings\LiveContracts\Tester\Process;
 use LegalThings\LiveContracts\Tester\Assert;
+use OutOfBoundsException;
 
 /**
  * Defines application features from the specific context.
@@ -88,7 +88,7 @@ class ProcessContext implements Context
                 throw new UnexpectedValueException("Expected application/json, got $contentType");
             }
 
-            $projection = json_decode($response->getBody());
+            $projection = json_decode($response->getBody(), true);
 
             if (!isset($projection)) {
                 throw new UnexpectedValueException("Response is not not valid JSON");
@@ -196,8 +196,12 @@ class ProcessContext implements Context
 
         if (!isset($actor)) {
             $actor = array_search($account, $process->actors, true);
+
+            if (!$actor) {
+                throw new OutOfBoundsException("\"$accountRef\" is not an actor of the \"$processRef\" process");
+            }
         } elseif (($process->actors[$actor] ?? null) !== $account) {
-            throw new FeatureHasNoBackgroundException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
+            throw new OutOfBoundsException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
         }
 
         $data = $this->convertInputToData($table, $markdown);
@@ -240,7 +244,7 @@ class ProcessContext implements Context
         $process = $this->getProcess($processRef);
         $projection = $this->getProjection($process);
 
-        Assert::assertArrayByDotkey(compact('label'), $projection['previous']);
+        Assert::assertArrayByDotkey(compact('title'), $projection['previous']);
     }
 
     /**
@@ -262,9 +266,8 @@ class ProcessContext implements Context
      * @Then the :processRef process is completed
      *
      * @param string $processRef
-     * @param string $state
      */
-    public function checkCompleted(string $processRef, string $state)
+    public function checkCompleted(string $processRef)
     {
         $this->checkState($processRef, ':success');
     }
@@ -273,9 +276,8 @@ class ProcessContext implements Context
      * @Then the :processRef process has failed
      *
      * @param string $processRef
-     * @param string $state
      */
-    public function checkFailed(string $processRef, string $state)
+    public function checkFailed(string $processRef)
     {
         $this->checkState($processRef, ':failed');
     }
