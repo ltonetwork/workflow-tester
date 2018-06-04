@@ -1,4 +1,4 @@
-default:
+default: &DEFAULT
     suites:
         default:
             endpoint: http://localhost:3000/api/
@@ -14,3 +14,13 @@ default:
                 databases:
                   - legalflow
                   - legalevents
+debug:
+    <<: *DEFAULT
+    suites:
+        default:
+            db:
+                dsn: mongodb://localhost:27747
+                databases:
+                  - legalflow
+                  - legalevents
+                dirty: true

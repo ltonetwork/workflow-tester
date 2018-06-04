@@ -5,8 +5,10 @@ namespace LegalThings\LiveContracts\Tester;
 use Behat\Behat\Context\Context;
 use Behat\Testwork\Suite\Exception as SuiteException;
 use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
+use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use Behat\Testwork\Hook\Scope\HookScope;
 use MongoDB;
+use PHPUnit\Runner\Hook;
 
 /**
  * Manage the MongoDB by loading fixtures and cleaning up after each feature.
@@ -54,7 +56,7 @@ class DBContext implements Context
     {
         $settings = $scope->getSuite()->getSetting('db');
 
-        if (!isset($settings['databases'])) {
+        if (!isset($settings['databases']) || ($scope instanceof AfterScenarioScope && !empty($settings['dirty']))) {
             return;
         }
 
