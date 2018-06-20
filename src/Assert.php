@@ -31,4 +31,22 @@ abstract class Assert extends Base
 
         self::assertEquals($expected, $actual);
     }
+
+    /**
+     * Assert array contains an item using dotkey notation.
+     *
+     * @param mixed    $expected
+     * @param string   $key
+     * @param iterable $array
+     */
+    public static function assertCointainsByDotkey($expected, $key, $array)
+    {
+        $actual = [];
+
+        foreach ($array as $i => $item) {
+            $actual[$i] = DotKey::on($item)->get($key);
+        }
+
+        self::assertContains($expected, $actual, var_export($actual, true));
+    }
 }
