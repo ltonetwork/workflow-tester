@@ -5,7 +5,7 @@ namespace LegalThings\LiveContracts\Tester;
 use Behat\Behat\Context\Context;
 use Behat\Testwork\Hook\Scope\HookScope;
 use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
-use Behat\Testwork\Hook\Scope\AfterSuiteScope;
+use Behat\Behat\Hook\Scope\AfterFeatureScope;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use MongoDB;
@@ -70,6 +70,10 @@ class DBContext implements Context
         }
 
         foreach ($settings['databases'] as $database) {
+            if (in_array("{$database}_before", $databases)) {
+                continue;
+            }
+
             self::$mongo->admin->command([
                 'copydb' => 1,
                 'fromhost' => 'localhost',
@@ -112,15 +116,25 @@ class DBContext implements Context
      * @param HookScope $scope
      *
      * @BeforeSuite
-     * @AfterSuite
+     * @BeforeFeature
+     * @AfterFeature
      */
     public static function dropDatabases(HookScope $scope)
     {
         $settings = $scope->getSuite()->getSetting('db');
 
+        if (!isset($settings['databases'])) {
+            return;
+        }
+
+        foreach ($settings['databases'] as $database) {
+            self::$mongo->dropDatabase("{$database}_before");
+        }
+
         if (
-            !isset($settings['databases']) ||
-            ($scope instanceof AfterSuiteScope && !$scope->getTestResult()->isPassed() && !empty($settings['dirty']))
+            !($scope instanceof BeforeSuiteScope) &&
+            !($scope instanceof AfterFeatureScope && $scope->getTestResult()->isPassed()) &&
+            !empty($settings['dirty'])
         ) {
             return;
         }
