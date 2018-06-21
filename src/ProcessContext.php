@@ -234,17 +234,17 @@ class ProcessContext implements Context
     }
 
     /**
-     * @Then :label is in the history of the :processRef process
+     * @Then :title is in the history of the :processRef process
      *
      * @param string $processRef
-     * @param string $label
+     * @param string $title
      */
-    public function hasInHistory(string $processRef, string $label)
+    public function hasInHistory(string $processRef, string $title)
     {
         $process = $this->getProcess($processRef);
         $projection = $this->getProjection($process);
 
-        Assert::assertArrayByDotkey(compact('title'), $projection['previous']);
+        Assert::assertCointainsByDotkey($title, 'title', $projection['previous']);
     }
 
     /**
