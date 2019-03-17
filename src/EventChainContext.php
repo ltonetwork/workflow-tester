@@ -1,25 +1,16 @@
 <?php
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use Behat\Behat\Context\Context;
+use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Testwork\Suite\Exception\SuiteException;
 use Behat\Testwork\Hook\Scope\BeforeSuiteScope;
 use Behat\Gherkin\Node\TableNode;
-use DateTimeImmutable;
+use GuzzleHttp\ClientInterface as HttpClient;
 use LTO\AccountFactory;
 use LTO\Account;
 use LTO\Event;
-use LTO\HTTPSignature;
-use GuzzleHttp\Client as HttpClient;
-use GuzzleHttp\HandlerStack;
-use GuzzleHttp\Handler\CurlHandler;
-use Psr\Http\Message\RequestInterface;
-use LegalThings\LiveContracts\Tester\EventChain;
-use LegalThings\LiveContracts\Tester\Assert;
-use LegalThings\LiveContracts\Tester\BehatInputConversion;
-use Ramsey\Uuid\Uuid;
-use UnexpectedValueException;
 
 /**
  * Defines application features from the specific context.
@@ -34,24 +25,14 @@ class EventChainContext implements Context
     protected static $suiteName;
 
     /**
-     * @var HttpClient
-     */
-    public static $httpClient;
-
-    /**
-     * @var string
-     */
-    protected static $systemSignKey;
-
-    /**
      * @var AccountFactory
      */
     public $accountFactory;
 
     /**
-     * @var DateTimeImmutable
+     * @var HttpClient
      */
-    protected $today;
+    protected $httpClient;
 
     /**
      * @var Account[]
@@ -59,9 +40,19 @@ class EventChainContext implements Context
     protected $accounts;
 
     /**
-     * @var EventChain  The main chain
+     * @var Account|null
+     */
+    protected $creator;
+
+    /**
+     * @var EventChain|null  The main chain
      */
     protected $chain;
+
+    /**
+     * @var string Public key of the node
+     */
+    protected $systemSignKey;
 
 
     /**
@@ -70,16 +61,14 @@ class EventChainContext implements Context
     public function __construct()
     {
         $this->accountFactory = new AccountFactory('T',0);
-        $this->today = new DateTimeImmutable();
     }
 
 
     /**
-     * Initialize the suite
+     * Initialize the suite.
+     * @BeforeSuite
      *
      * @param BeforeSuiteScope $scope
-     *
-     * @BeforeSuite
      */
     public static function initSuite(BeforeSuiteScope $scope)
     {
@@ -87,42 +76,24 @@ class EventChainContext implements Context
     }
 
     /**
-     * Get HTTP endpoint
-     *
-     * @param BeforeSuiteScope $scope
-     *
-     * @BeforeSuite
+     * Get the http client from the http context.
+     * @BeforeScenario
      */
-    public static function initHttpClient(BeforeSuiteScope $scope)
+    public function gatherHttpClient(BeforeScenarioScope $scope)
     {
-        $environment = $scope->getEnvironment();
-        $endpoint = $environment->getSuite()->getSetting('endpoint') ?? 'http://localhost';
+        $this->httpClient = $scope->getEnvironment()->getContext(HttpContext::class)->getClient();
+    }
 
-        $stack = HandlerStack::create();
-        $stack->push(function(callable $handler) {
-            return function(RequestInterface $request, $options) use ($handler) {
-                $signedRequest = isset($options['account'])
-                    ? (new HTTPSignature($request, ['(request-target)', 'date']))->signWith($options['account'])
-                    : $request;
-                return $handler($signedRequest, $options);
-            };
-        });
-        $stack->push(function(callable $handler) {
-            return function(RequestInterface $request, $options) use ($handler) {
-                return $handler($request, $options)->then(function($response) {
-                    if ($response->getStatusCode() >= 400) {
-                        echo "Bad Request: ", (string)$response->getBody();
-                    }
-                    return $response;
-                });
-            };
-        });
-
-        self::$httpClient = new HttpClient(['base_uri' => $endpoint, 'handler' => $stack]);
-
-        $response = self::$httpClient->get('events/');
+    /**
+     * Get system sign key.
+     * @BeforeScenario
+     */
+    public function fetchSystemKey(BeforeScenarioScope $scope)
+    {
+        $response = $this->httpClient->request('GET', '/', ['headers' => ['Accept' => 'application/json']]);
         $data = json_decode($response->getBody());
-        static::$systemSignKey = $data->signkey;
+
+        $this->systemSignKey = $data->services->events->signkey ?? null;
     }
 
     /**
@@ -133,14 +104,11 @@ class EventChainContext implements Context
      */
     public function getAccount(string $accountRef): Account
     {
-        if (isset($this->accounts[$accountRef])) {
-            $account = $this->accounts[$accountRef];
-        } else {
-            $account = $this->accountFactory->seed($accountRef);
-            $this->accounts[$accountRef] = $account;
+        if (!isset($this->accounts[$accountRef])) {
+            $this->accounts[$accountRef] = $this->accountFactory->seed($accountRef);
         }
 
-        return $account;
+        return $this->accounts[$accountRef];
     }
 
     /**
@@ -159,25 +127,32 @@ class EventChainContext implements Context
     }
 
     /**
+     * Get the account that created the chain.
+     *
+     * @return Account
+     */
+    public function getCreator(): Account
+    {
+        if (!isset($this->creator)) {
+            throw new SuiteException("the chain hasn't been created", self::$suiteName);
+        }
+
+        return $this->creator;
+    }
+
+    /**
      * Update the projection of the chain
      *
      * @param Account $account
      */
     protected function updateProjection(Account $account)
     {
-        $response = self::$httpClient->get('events/event-chains/' . $this->getChain()->id, compact('account'));
-
-        list($contentType) = explode(';', $response->getHeaderLine('Content-Type'));
-
-        if ($contentType !== 'application/json') {
-            throw new UnexpectedValueException("Expected application/json, got $contentType");
-        }
-
-        $projection = json_decode($response->getBody());
-
-        if (!isset($projection)) {
-            throw new UnexpectedValueException("Response is not not valid JSON");
-        }
+        $response = $this->httpClient->request(
+            'GET',
+            'event-chains/' . $this->getChain()->id,
+            ['account' => $account, 'headers' => ['Accept' => 'application/json']]
+        );
+        $projection= json_decode($response->getBody());
 
         $chain = $this->getChain();
         $chain->update($projection);
@@ -191,46 +166,30 @@ class EventChainContext implements Context
      */
     public function submit(Account $account)
     {
-        self::$httpClient->post('events/event-chains/', ['json' => $this->getChain(), 'account' => $account]);
-
+        $this->httpClient->request('POST', 'event-chains', ['json' => $this->getChain(), 'account' => $account]);
         $this->updateProjection($account);
     }
 
     /**
      * Create an identity based on an account
      *
-     * @param string  $name
      * @param Account $account
      * @return array
      */
-    public function createIdentity(string $name, Account $account): array
+    public function createIdentity(Account $account): array
     {
-        $account->id = Uuid::uuid4();
-
         return [
-            '$schema' => "https://specs.livecontracts.io/v0.1.0/identity/schema.json#",
+            '$schema' => "https://specs.livecontracts.io/v0.2.0/identity/schema.json#",
             "id" => $account->id,
-            "info" => [
-                "name" => $name
-            ],
             "node" => "amqps://localhost",
             "signkeys" => [
-                "user" => $account->getPublicSignKey(),
-                "system" => static::$systemSignKey
+                "default" => $account->getPublicSignKey(),
+                "system" => $this->systemSignKey,
             ],
             "encryptkey" => $account->getPublicEncryptKey()
         ];
     }
 
-    /**
-     * @Given today is :date
-     *
-     * @param string $date
-     */
-    public function todayIs($date)
-    {
-        $this->today = new DateTimeImmutable($date);
-    }
 
     /**
      * @Given a chain is created by :accountRef
@@ -244,8 +203,12 @@ class EventChainContext implements Context
         $this->chain = new EventChain();
         $this->chain->initFor($account);
 
-        $identityEvent = new Event($this->createIdentity($accountRef, $account));
+        $account->id = $this->chain->createResourceId($accountRef);
+
+        $identityEvent = new Event($this->createIdentity($account));
         $identityEvent->addTo($this->chain)->signWith($account);
+
+        $this->creator = $account;
     }
 
     /**

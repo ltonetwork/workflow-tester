@@ -1,16 +1,17 @@
 default: &DEFAULT
     suites:
         default:
-            endpoint: http://localhost:3000/api/
+            endpoint: http://localhost:3000/
             paths:
                 - ./
                 - ./features
             contexts:
-                - \LegalThings\LiveContracts\Tester\DBContext
-                - \LegalThings\LiveContracts\Tester\EventChainContext
-                - \LegalThings\LiveContracts\Tester\ProcessContext
+                - \LTO\LiveContracts\Tester\DBContext
+                - \LTO\LiveContracts\Tester\HttpContext
+                - \LTO\LiveContracts\Tester\EventChainContext
+                - \LTO\LiveContracts\Tester\ProcessContext
             db:
-                dsn: mongodb://localhost:27747
+                dsn: mongodb://localhost:27017
                 databases:
                   - legalflow
                   - legalevents
@@ -19,7 +20,7 @@ debug:
     suites:
         default:
             db:
-                dsn: mongodb://localhost:27747
+                dsn: mongodb://localhost:27017
                 databases:
                   - legalflow
                   - legalevents

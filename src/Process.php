@@ -6,13 +6,12 @@
  * Time: 21:56
  */
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use LTO\Account;
 use LTO\EventChain;
 use BadMethodCallException;
 use RuntimeException;
-use OutOfBoundsException;
 
 /**
  * Representation of a Live Contracts process
@@ -54,12 +53,13 @@ class Process
     /**
      * Process constructor.
      *
-     * @param EventChain $chain
+     * @param EventChain  $chain
+     * @param string|null $ref
      */
-    public function __construct(EventChain $chain)
+    public function __construct(EventChain $chain, ?string $ref = null)
     {
         $this->chain = $chain;
-        $this->id = $chain->createProjectionId();
+        $this->id = $chain->createResourceId($ref);
     }
 
 
@@ -99,36 +99,22 @@ class Process
      * Create a response of an action
      *
      * @param string $actionKey
-     * @param string $actor
      * @param string $key
      * @param mixed  $data
      * @return array
      * @throws BadMethodCallException if the scenario is not set
      */
-    public function createResponse(string $actionKey, string $actor, ?string $key, $data = null): array
+    public function createResponse(string $actionKey, ?string $key, $data = null): array
     {
-        if (!isset($this->actors[$actor])) {
-            throw new OutOfBoundsException("Actor '$actor' is not present in process");
-        }
-
         if (!isset($key)) {
             $key = $this->scenario->actions->$actionKey->default_response ?? 'ok';
         }
 
         $response = [
-            '$schema' => 'https://specs.livecontracts.io/v0.1.0/response/schema.json#',
-            'process' => [
-                'id' => 'lt:/processes/' . $this->id,
-                'scenario' => [
-                    'id' => $this->scenario->id ?? null
-                ]
-            ],
+            '$schema' => 'https://specs.livecontracts.io/v0.2.0/response/schema.json#',
+            'process' => $this->id,
             'action' => [
                 'key' => $actionKey
-            ],
-            'actor' => [
-                'key' => $actor,
-                'id' => $this->actors[$actor]->id
             ],
             'key' => $key,
             'data' => $data

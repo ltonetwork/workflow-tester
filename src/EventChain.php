@@ -1,6 +1,6 @@
 <?php
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use LTO\Event;
 use LTO\EventChain as Base;
@@ -17,11 +17,6 @@ class EventChain extends Base
      * @var stdClass[]
      */
     public $identities;
-
-    /**
-     * @var stdClass[]
-     */
-    public $comments;
 
     /**
      * @var string[]
@@ -58,7 +53,6 @@ class EventChain extends Base
         $this->lastSendEvent = $this->getLatestHash();
 
         $this->identities = $projection->identities;
-        $this->comments = $projection->comments;
         $this->resources = $projection->resources;
     }
 

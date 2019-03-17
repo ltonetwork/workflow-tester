@@ -6,7 +6,7 @@
  * Time: 5:36
  */
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use PHPUnit\Framework\Assert as Base;
 use Jasny\DotKey;

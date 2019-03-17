@@ -8,7 +8,7 @@
  * file that was distributed with this source code.
  */
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use Behat\Behat\Context\ServiceContainer\ContextExtension;
 use Behat\Behat\Definition\ServiceContainer\DefinitionExtension;
@@ -23,6 +23,7 @@ use Behat\Behat\Snippet\ServiceContainer\SnippetExtension;
 use Behat\Behat\Tester\ServiceContainer\TesterExtension;
 use Behat\Behat\Transformation\ServiceContainer\TransformationExtension;
 use Behat\Behat\Translator\ServiceContainer\GherkinTranslationsExtension;
+use Behat\Behat\ApplicationFactory as BehatFactory;
 use Behat\Testwork\ApplicationFactory as BaseFactory;
 use Behat\Testwork\Argument\ServiceContainer\ArgumentExtension;
 use Behat\Testwork\Autoloader\ServiceContainer\AutoloaderExtension;
@@ -47,8 +48,6 @@ use Behat\Testwork\Translator\ServiceContainer\TranslatorExtension;
  */
 final class ApplicationFactory extends BaseFactory
 {
-    const VERSION = '3.4.3';
-
     /**
      * {@inheritdoc}
      */
@@ -62,7 +61,7 @@ final class ApplicationFactory extends BaseFactory
      */
     protected function getVersion()
     {
-        return self::VERSION;
+        return BehatFactory::VERSION;
     }
 
     /**

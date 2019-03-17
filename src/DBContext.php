@@ -1,6 +1,6 @@
 <?php
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use Behat\Behat\Context\Context;
 use Behat\Testwork\Hook\Scope\HookScope;

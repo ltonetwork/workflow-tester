@@ -1,11 +1,14 @@
 <?php
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
 use Jasny\DotKey;
 
+/**
+ * Convert behat input table to json data or key/value pairs.
+ */
 trait BehatInputConversion
 {
     /**

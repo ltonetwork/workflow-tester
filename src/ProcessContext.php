@@ -1,20 +1,14 @@
 <?php
 
-namespace LegalThings\LiveContracts\Tester;
+namespace LTO\LiveContracts\Tester;
 
 use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Gherkin\Node\PyStringNode;
 use Behat\Gherkin\Node\TableNode;
-use UnexpectedValueException;
+use GuzzleHttp\ClientInterface as HttpClient;
 use LTO\Account;
 use LTO\Event;
-use LTO\EventChain;
-use LegalThings\LiveContracts\Tester\BehatInputConversion;
-use LegalThings\LiveContracts\Tester\EventChainContext;
-use LegalThings\LiveContracts\Tester\Process;
-use LegalThings\LiveContracts\Tester\Assert;
-use OutOfBoundsException;
 
 /**
  * Defines application features from the specific context.
@@ -29,6 +23,11 @@ class ProcessContext implements Context
     protected $chainContext;
 
     /**
+     * @var HttpClient
+     */
+    protected $httpClient;
+
+    /**
      * @var string
      */
     protected $basePath;
@@ -39,8 +38,7 @@ class ProcessContext implements Context
     protected $processes;
 
     /**
-     * Get event related contexts
-     *
+     * Get related contexts.
      * @BeforeScenario
      */
     public function gatherContexts(BeforeScenarioScope $scope)
@@ -48,6 +46,16 @@ class ProcessContext implements Context
         $environment = $scope->getEnvironment();
 
         $this->chainContext = $environment->getContext(EventChainContext::class);
+        $this->httpClient = $environment->getContext(HttpContext::class)->getClient();
+    }
+
+    /**
+     * Determine the base path.
+     * @BeforeScenario
+     */
+    public function determineBasePath(BeforeScenarioScope $scope)
+    {
+        $environment = $scope->getEnvironment();
 
         $paths = $environment->getSuite()->getSetting('paths');
         $curPath = realpath($paths[0]);
@@ -64,7 +72,7 @@ class ProcessContext implements Context
     {
         if (!isset($this->processes[$ref])) {
             $chain = $this->chainContext->getChain();
-            $this->processes[$ref] = new Process($chain);
+            $this->processes[$ref] = new Process($chain, $ref);
         }
 
         return $this->processes[$ref];
@@ -73,27 +81,23 @@ class ProcessContext implements Context
     /**
      * Get the projection of a process
      *
-     * @param Process $process
+     * @param Process       $process
+     * @param Account|null $account
      * @return array
      */
-    public function getProjection(Process $process): array
+    public function getProjection(Process $process, ?Account $account = null): array
     {
         $projection = $process->getProjection();
+        $account = $account ?? $this->chainContext->getCreator();
 
         if (!isset($projection)) {
-            $response = EventChainContext::$httpClient->get('flow/processes/' . $process->id);
-            list($contentType) = explode(';', $response->getHeaderLine('Content-Type'));
-
-            if ($contentType !== 'application/json') {
-                throw new UnexpectedValueException("Expected application/json, got $contentType");
-            }
+            $response = $this->httpClient->request(
+                'GET',
+                'processes/' . $process->id,
+                ['account' => $account, 'headers' => ['Accept' => 'application/json']]
+            );
 
             $projection = json_decode($response->getBody(), true);
-
-            if (!isset($projection)) {
-                throw new UnexpectedValueException("Response is not not valid JSON");
-            }
-
             $process->setProjection($projection);
         }
 
@@ -117,8 +121,6 @@ class ProcessContext implements Context
 
         $event = new Event($process->scenario);
         $this->chainContext->getChain()->add($event)->signWith($account);
-
-        $process->scenario->id .= '?v=' . $event->getResourceVersion();
     }
 
     /**
@@ -198,10 +200,10 @@ class ProcessContext implements Context
             $actor = array_search($account, $process->actors, true);
 
             if (!$actor) {
-                throw new OutOfBoundsException("\"$accountRef\" is not an actor of the \"$processRef\" process");
+                throw new \OutOfBoundsException("\"$accountRef\" is not an actor of the \"$processRef\" process");
             }
         } elseif (($process->actors[$actor] ?? null) !== $account) {
-            throw new OutOfBoundsException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
+            throw new \OutOfBoundsException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
         }
 
         $data = $this->convertInputToData($table, $markdown);
