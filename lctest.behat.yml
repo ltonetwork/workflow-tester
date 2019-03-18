@@ -13,8 +13,8 @@ default: &DEFAULT
             db:
                 dsn: mongodb://localhost:27017
                 databases:
-                  - legalflow
-                  - legalevents
+                    - lto_eventchain
+                    - lto_workflow
 debug:
     <<: *DEFAULT
     suites:
@@ -22,6 +22,6 @@ debug:
             db:
                 dsn: mongodb://localhost:27017
                 databases:
-                  - legalflow
-                  - legalevents
+                    - lto_eventchain
+                    - lto_workflow
                 dirty: true

@@ -94,7 +94,7 @@ class ProcessContext implements Context
             $response = $this->httpClient->request(
                 'GET',
                 'processes/' . $process->id,
-                ['account' => $account, 'headers' => ['Accept' => 'application/json']]
+                ['account' => $account, 'headers' => ['Accept' => 'application/json;view=complete']]
             );
 
             $projection = json_decode($response->getBody(), true);
@@ -106,7 +106,7 @@ class ProcessContext implements Context
 
 
     /**
-     * @Given :accountRef creates the :processRef process using scenario :scenarioRef
+     * @Given :accountRef creates the :processRef process using the :scenarioRef scenario
      *
      * @param string $accountRef
      * @param string $processRef
@@ -119,23 +119,15 @@ class ProcessContext implements Context
 
         $process->loadScenario($scenarioRef, $this->basePath);
 
-        $event = new Event($process->scenario);
-        $this->chainContext->getChain()->add($event)->signWith($account);
+        $scenarioEvent = new Event($process->scenario);
+        $this->chainContext->getChain()->add($scenarioEvent)->signWith($account);
+
+        $processEvent = new Event($process);
+        $this->chainContext->getChain()->add($processEvent)->signWith($account);
     }
 
     /**
-     * @Given the :processRef process has id :processId
-     *
-     * @param string $processRef
-     * @param string $processId
-     */
-    public function setProcessId(string $processRef, string $processId)
-    {
-        $this->getProcess($processRef)->id = $processId;
-    }
-
-    /**
-     * @Given :accountRef is the :actor actor of the :processRef process
+     * @Given :accountRef is (also) the :actor actor of the :processRef process
      *
      * @param string $accountRef
      * @param string $actor
@@ -150,9 +142,7 @@ class ProcessContext implements Context
 
     /**
      * @When :accountRef runs the :actionKey action of the :processRef process
-     * @When :accountRef runs the :actionKey action of the :processRef process as :actor
-     * @When :accountRef runs the :actionKey action of the :processRef process giving an :responseKey response
-     * @When :accountRef runs the :actionKey action of the :processRef process giving an :responseKey response as :actor
+     * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response
      *
      * @param string $accountRef
      * @param string $actionKey
@@ -172,9 +162,7 @@ class ProcessContext implements Context
 
     /**
      * @When :accountRef runs the :actionKey action of the :processRef process with:
-     * @When :accountRef runs the :actionKey action of the :processRef process as :actor with:
      * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response with:
-     * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response as :actor with:
      *
      * @param string $accountRef
      * @param string $actionKey
@@ -207,7 +195,7 @@ class ProcessContext implements Context
         }
 
         $data = $this->convertInputToData($table, $markdown);
-        $response = $process->createResponse($actionKey, $actor, $responseKey, $data);
+        $response = $process->createResponse($actionKey, $responseKey, $data);
 
         $chain = $this->chainContext->getChain();
         (new Event($response))->addTo($chain)->signWith($account);

@@ -22,14 +22,6 @@ class HttpContext implements Context
     protected static $httpClient;
 
     /**
-     * HttpContext constructor.
-     * @param bool $debug
-     */
-    public function __construct(bool $debug = false)
-    {
-    }
-
-    /**
      * Get HTTP endpoint.
      * @BeforeSuite
      *

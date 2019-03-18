@@ -152,7 +152,7 @@ class EventChainContext implements Context
             'event-chains/' . $this->getChain()->id,
             ['account' => $account, 'headers' => ['Accept' => 'application/json']]
         );
-        $projection= json_decode($response->getBody());
+        $projection = json_decode($response->getBody());
 
         $chain = $this->getChain();
         $chain->update($projection);
@@ -166,7 +166,12 @@ class EventChainContext implements Context
      */
     public function submit(Account $account)
     {
-        $this->httpClient->request('POST', 'event-chains', ['json' => $this->getChain(), 'account' => $account]);
+        $this->httpClient->request(
+            'POST',
+            'event-chains',
+            ['json' => $this->getChain(), 'account' => $account]
+        );
+
         $this->updateProjection($account);
     }
 

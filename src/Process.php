@@ -1,13 +1,8 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: arnold
- * Date: 13-5-18
- * Time: 21:56
- */
 
 namespace LTO\LiveContracts\Tester;
 
+use JsonSerializable;
 use LTO\Account;
 use LTO\EventChain;
 use BadMethodCallException;
@@ -16,8 +11,13 @@ use RuntimeException;
 /**
  * Representation of a Live Contracts process
  */
-class Process
+class Process implements JsonSerializable
 {
+    /**
+     * @var string
+     */
+    public $schema = 'https://specs.livecontracts.io/v0.2.0/process/schema.json#';
+
     /**
      * @var string
      */
@@ -92,7 +92,10 @@ class Process
             throw new RuntimeException("Unable to load scenario: failed to parse \"$path/$name/scenario.json\"");
         }
 
+        $this->id = $this->chain->createResourceId('process:' . $name);
+
         $this->scenario = $scenario;
+        $this->scenario->id = $this->chain->createResourceId('scenario:' . $path);
     }
 
     /**
@@ -143,5 +146,20 @@ class Process
     {
         $this->projection = $projection;
         $this->eventAtProjection === $this->chain->getLatestHash();
+    }
+
+    /**
+     * Prepare JSON serialization.
+     *
+     * @return \stdClass
+     */
+    public function jsonSerialize(): \stdClass
+    {
+        return (object)[
+            '$schema' => $this->schema,
+            'id' => $this->id,
+            'scenario' => $this->scenario,
+            'actors' => $this->actors
+        ];
     }
 }
