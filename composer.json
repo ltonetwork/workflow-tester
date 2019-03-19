@@ -14,6 +14,8 @@
     ],
     "require": {
         "php": ">=7.2.0",
+        "ext-yaml": "*",
+        "ext-json": "*",
         "behat/behat": "^3.5",
         "lto/api": "^0.2.0",
         "jasny/dotkey": "^1.0",
@@ -22,7 +24,8 @@
         "ramsey/uuid": "^3.7",
         "mongodb/mongodb": "^1.3",
         "jasny/http-signature": "^1.1",
-        "jasny/http-digest": "^1.2"
+        "jasny/http-digest": "^1.2",
+        "jasny/php-functions": "^4.1"
     },
     "autoload": {
         "psr-4": {

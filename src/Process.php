@@ -78,23 +78,9 @@ class Process implements JsonSerializable
             throw new BadMethodCallException("Scenario already set");
         }
 
-        if (!file_exists("$path/$name/scenario.json")) {
-            throw new RuntimeException("Unable to load scenario: \"$path/$name/scenario.json\" not found");
-        }
-
-        $json = file_get_contents("$path/$name/scenario.json");
-
-        if ($json !== false) {
-            $scenario = json_decode($json);
-        }
-
-        if (empty($scenario)) {
-            throw new RuntimeException("Unable to load scenario: failed to parse \"$path/$name/scenario.json\"");
-        }
-
         $this->id = $this->chain->createResourceId('process:' . $name);
 
-        $this->scenario = $scenario;
+        $this->scenario = ScenarioLoader::getInstance()->load($name, $path);
         $this->scenario->id = $this->chain->createResourceId('scenario:' . $path);
     }
 
