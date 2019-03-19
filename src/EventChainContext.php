@@ -164,8 +164,10 @@ class EventChainContext implements Context
      *
      * @param Account $account  Account that is signing the request
      */
-    public function submit(Account $account)
+    public function submit(?Account $account = null)
     {
+        $account = $account ?? $this->creator;
+
         $this->httpClient->request(
             'POST',
             'event-chains',

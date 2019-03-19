@@ -107,12 +107,8 @@ class ProcessContext implements Context
 
     /**
      * @Given :accountRef creates the :processRef process using the :scenarioRef scenario
-     *
-     * @param string $accountRef
-     * @param string $processRef
-     * @param string $scenarioRef
      */
-    public function createProcessUsingScenario(string $accountRef, string $processRef, string $scenarioRef)
+    public function createProcessUsingScenario(string $accountRef, string $processRef, string $scenarioRef): void
     {
         $account = $this->chainContext->getAccount($accountRef);
         $process = $this->getProcess($processRef);
@@ -128,12 +124,8 @@ class ProcessContext implements Context
 
     /**
      * @Given :accountRef is (also) the :actor actor of the :processRef process
-     *
-     * @param string $accountRef
-     * @param string $actor
-     * @param string $processRef
      */
-    public function defineActor(string $accountRef, string $actor, string $processRef)
+    public function defineActor(string $accountRef, string $actor, string $processRef): void
     {
         $account = $this->chainContext->getAccount($accountRef);
 
@@ -141,14 +133,16 @@ class ProcessContext implements Context
     }
 
     /**
+     * @When the process is started
+     */
+    public function startProcessAction(): void
+    {
+        $this->chainContext->submit();
+    }
+
+    /**
      * @When :accountRef runs the :actionKey action of the :processRef process
      * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response
-     *
-     * @param string $accountRef
-     * @param string $actionKey
-     * @param string $processRef
-     * @param string|null $actor
-     * @parma string|null $responseKey
      */
     public function runAction(
         string $accountRef,
@@ -156,21 +150,13 @@ class ProcessContext implements Context
         string $processRef,
         ?string $actor = null,
         ?string $responseKey = null
-    ) {
+    ): void {
         $this->runActionWithData($accountRef, $actionKey, $processRef, $actor, $responseKey);
     }
 
     /**
      * @When :accountRef runs the :actionKey action of the :processRef process with:
      * @When :accountRef runs the :actionKey action of the :processRef process giving a(n) :responseKey response with:
-     *
-     * @param string $accountRef
-     * @param string $actionKey
-     * @param string $processRef
-     * @param string|null $actor
-     * @parma string|null $responseKey
-     * @param TableNode|null $table
-     * @param PyStringNode|null $markdown
      */
     public function runActionWithData(
         string $accountRef,
@@ -180,7 +166,7 @@ class ProcessContext implements Context
         ?string $responseKey = null,
         ?TableNode $table = null,
         ?PyStringNode $markdown = null
-    ) {
+    ): void {
         $account = $this->chainContext->getAccount($accountRef);
         $process = $this->getProcess($processRef);
 
@@ -206,12 +192,8 @@ class ProcessContext implements Context
     /**
      * @Then the :processRef process has asset :assetKey
      * @Then the :processRef process has asset :assetKey with:
-     *
-     * @param string $processRef
-     * @param string $assetKey
-     * @param TableNode|null $table
      */
-    public function checkAsset(string $processRef, string $assetKey, ?TableNode $table = null)
+    public function checkAsset(string $processRef, string $assetKey, ?TableNode $table = null): void
     {
         $process = $this->getProcess($processRef);
         $projection = $this->getProjection($process);
@@ -225,11 +207,8 @@ class ProcessContext implements Context
 
     /**
      * @Then :title is in the history of the :processRef process
-     *
-     * @param string $processRef
-     * @param string $title
      */
-    public function hasInHistory(string $processRef, string $title)
+    public function hasInHistory(string $processRef, string $title): void
     {
         $process = $this->getProcess($processRef);
         $projection = $this->getProjection($process);
@@ -239,11 +218,8 @@ class ProcessContext implements Context
 
     /**
      * @Then the :processRef process is in the :state state
-     *
-     * @param string $processRef
-     * @param string $state
      */
-    public function checkState(string $processRef, string $state)
+    public function checkState(string $processRef, string $state): void
     {
         $process = $this->getProcess($processRef);
         $projection = $this->getProjection($process);
@@ -254,20 +230,16 @@ class ProcessContext implements Context
 
     /**
      * @Then the :processRef process is completed
-     *
-     * @param string $processRef
      */
-    public function checkCompleted(string $processRef)
+    public function checkCompleted(string $processRef): void
     {
         $this->checkState($processRef, ':success');
     }
 
     /**
      * @Then the :processRef process has failed
-     *
-     * @param string $processRef
      */
-    public function checkFailed(string $processRef)
+    public function checkFailed(string $processRef): void
     {
         $this->checkState($processRef, ':failed');
     }
