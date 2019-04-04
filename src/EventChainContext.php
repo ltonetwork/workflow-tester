@@ -212,7 +212,8 @@ class EventChainContext implements Context
 
         $account->id = $this->chain->createResourceId($accountRef);
 
-        $identityEvent = new Event($this->createIdentity($account));
+        $identity = $this->createIdentity($account);
+        $identityEvent = new Event($identity);
         $identityEvent->addTo($this->chain)->signWith($account);
 
         $this->creator = $account;

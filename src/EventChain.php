@@ -5,7 +5,6 @@ namespace LTO\LiveContracts\Tester;
 use LTO\Event;
 use LTO\EventChain as Base;
 use LTO\Account;
-use stdClass;
 use UnexpectedValueException;
 
 /**
@@ -14,9 +13,9 @@ use UnexpectedValueException;
 class EventChain extends Base
 {
     /**
-     * @var stdClass[]
+     * @var \stdClass[]
      */
-    public $identities;
+    public $identities = [];
 
     /**
      * @var string[]
@@ -33,10 +32,10 @@ class EventChain extends Base
     /**
      * Update the event chain
      *
-     * @param stdClass $projection
+     * @param \stdClass $projection
      * @return void
      */
-    public function update(stdClass $projection): void
+    public function update(\stdClass $projection): void
     {
         foreach ($this->events as $i => $event) {
             $hash = $projection->events[$i]->hash;

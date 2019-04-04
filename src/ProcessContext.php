@@ -104,6 +104,19 @@ class ProcessContext implements Context
         return $projection;
     }
 
+    /**
+     * Add the process to the event chain
+     *
+     * @param Process $process
+     */
+    protected function addProcessToChain(Process $process): void
+    {
+        $account = $process->getCreator() ?? $this->chainContext->getCreator();
+
+        $chain = $this->chainContext->getChain();
+        $chain->add(new Event($process))->signWith($account);
+    }
+
 
     /**
      * @Given :accountRef creates the :processRef process using the :scenarioRef scenario
@@ -113,13 +126,11 @@ class ProcessContext implements Context
         $account = $this->chainContext->getAccount($accountRef);
         $process = $this->getProcess($processRef);
 
+        $process->setCreator($account);
         $process->loadScenario($scenarioRef, $this->basePath);
 
         $scenarioEvent = new Event($process->scenario);
         $this->chainContext->getChain()->add($scenarioEvent)->signWith($account);
-
-        $processEvent = new Event($process);
-        $this->chainContext->getChain()->add($processEvent)->signWith($account);
     }
 
     /**
@@ -128,15 +139,24 @@ class ProcessContext implements Context
     public function defineActor(string $accountRef, string $actor, string $processRef): void
     {
         $account = $this->chainContext->getAccount($accountRef);
+        $identity = $this->chainContext->createIdentity($account);
 
-        $this->getProcess($processRef)->actors[$actor] = $account;
+        $this->getProcess($processRef)->setActor($actor, $identity);
     }
 
     /**
-     * @When the process is started
+     * @When the :processRef process is started
      */
-    public function startProcessAction(): void
+    public function startProcessAction(string $processRef): void
     {
+        $process = $this->getProcess($processRef);
+
+        if ($process->getProjection() !== null) {
+            Assert::fail("Process \"$processRef\" is already started");
+        }
+
+        $this->addProcessToChain($process);
+
         $this->chainContext->submit();
     }
 
@@ -148,10 +168,9 @@ class ProcessContext implements Context
         string $accountRef,
         string $actionKey,
         string $processRef,
-        ?string $actor = null,
         ?string $responseKey = null
     ): void {
-        $this->runActionWithData($accountRef, $actionKey, $processRef, $actor, $responseKey);
+        $this->runActionWithData($accountRef, $actionKey, $processRef, $responseKey);
     }
 
     /**
@@ -162,7 +181,6 @@ class ProcessContext implements Context
         string $accountRef,
         string $actionKey,
         string $processRef,
-        ?string $actor = null,
         ?string $responseKey = null,
         ?TableNode $table = null,
         ?PyStringNode $markdown = null
@@ -170,14 +188,12 @@ class ProcessContext implements Context
         $account = $this->chainContext->getAccount($accountRef);
         $process = $this->getProcess($processRef);
 
-        if (!isset($actor)) {
-            $actor = array_search($account, $process->actors, true);
+        if (!$process->hasActorWithSignkey($account->getPublicSignKey())) {
+            Assert::fail("\"$accountRef\" is not an actor of the \"$processRef\" process");
+        }
 
-            if (!$actor) {
-                throw new \OutOfBoundsException("\"$accountRef\" is not an actor of the \"$processRef\" process");
-            }
-        } elseif (($process->actors[$actor] ?? null) !== $account) {
-            throw new \OutOfBoundsException("\"$accountRef\" is not the \"$actor\" actor of the \"$processRef\" process");
+        if ($process->getProjection() === null) {
+            $this->addProcessToChain($process);
         }
 
         $data = $this->convertInputToData($table, $markdown);

@@ -29,7 +29,7 @@ class Process implements JsonSerializable
     public $scenario;
 
     /**
-     * @var Account[]
+     * @var \stdClass[]
      */
     public $actors = [];
 
@@ -49,6 +49,10 @@ class Process implements JsonSerializable
      */
     protected $eventAtProjection;
 
+    /**
+     * @var Account|null
+     */
+    protected $creator;
 
     /**
      * Process constructor.
@@ -60,6 +64,36 @@ class Process implements JsonSerializable
     {
         $this->chain = $chain;
         $this->id = $chain->createResourceId($ref);
+    }
+
+
+    /**
+     * Set the creator of the process
+     *
+     * @param Account $account
+     * @throws BadMethodCallException
+     */
+    public function setCreator(Account $account): void
+    {
+        if ($this->creator !== null && $this->creator->getPublicSignKey() === $account->getPublicSignKey()) {
+            return;
+        }
+
+        if ($this->creator !== null) {
+            throw new BadMethodCallException("Process creator already set");
+        }
+
+        $this->creator = $account;
+    }
+
+    /**
+     * Get the creator of the process.
+     *
+     * @return Account|null
+     */
+    public function getCreator(): ?Account
+    {
+        return $this->creator;
     }
 
 
@@ -82,6 +116,38 @@ class Process implements JsonSerializable
 
         $this->scenario = ScenarioLoader::getInstance()->load($name, $path);
         $this->scenario->id = $this->chain->createResourceId('scenario:' . $path);
+    }
+
+    /**
+     * Set the actor to an identity.
+     *
+     * @param string $actorKey
+     * @param \stdClass|array $identity
+     */
+    public function setActor(string $actorKey, $identity): void
+    {
+        if (isset($this->actors[$actorKey])) {
+            throw new BadMethodCallException("Actor '$actorKey' already set");
+        }
+
+        $this->actors[$actorKey] = (object)['identity' => (object)$identity];
+    }
+
+    /**
+     * Check if the process has an actor with the given signkey
+     *
+     * @param string $signkey
+     * @return bool
+     */
+    public function hasActorWithSignkey(string $signkey): bool
+    {
+        foreach ($this->actors as $actor) {
+            if (($actor->identity->signkeys['default'] ?? null) === $signkey) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -128,7 +194,7 @@ class Process implements JsonSerializable
      *
      * @param array $projection
      */
-    public function setProjection(array $projection)
+    public function setProjection(array $projection): void
     {
         $this->projection = $projection;
         $this->eventAtProjection === $this->chain->getLatestHash();
