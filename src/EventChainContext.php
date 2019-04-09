@@ -105,7 +105,16 @@ class EventChainContext implements Context
     public function getAccount(string $accountRef): Account
     {
         if (!isset($this->accounts[$accountRef])) {
-            $this->accounts[$accountRef] = $this->accountFactory->seed($accountRef);
+            $account = $this->accountFactory->seed($accountRef);
+            if (isset($this->chain)) {
+                $account->id = $this->chain->createResourceId($accountRef);
+
+                $identity = $this->createIdentity($account);
+                $identityEvent = new Event($identity);
+                $identityEvent->addTo($this->chain)->signWith($this->getCreator());
+            }
+
+            $this->accounts[$accountRef] = $account;
         }
 
         return $this->accounts[$accountRef];
@@ -232,6 +241,13 @@ class EventChainContext implements Context
         }
 
         $account = $this->accountFactory->create($key);
+
+        $account->id = $this->chain->createResourceId($accountRef);
+
+        $identity = $this->createIdentity($account);
+        $identityEvent = new Event($identity);
+        $identityEvent->addTo($this->chain)->signWith($this->getCreator());
+
         $this->accounts[$accountRef] = $account;
     }
 
