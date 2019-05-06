@@ -8,7 +8,7 @@ Make sure you have an `lto-node` [docker environment](https://hub.docker.com/u/l
 using docker-compose.
 
 * Linux or MacOS
-* [PHP >= 7.1](http://www.php.net/)
+* [PHP >= 7.2](http://www.php.net/)
 * [composer](https://getcomposer.org/)
 
 Other requirement are configured through composer.
@@ -37,5 +37,3 @@ Add the `bin` dir to your `$PATH` to run the command
     lctest
     
 Run `lctest --help` for more options.
-
-    
