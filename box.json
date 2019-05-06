@@ -1,0 +1,13 @@
+{
+    "directories": [
+      "src",
+      "vendor"
+    ],
+    "files": [
+      "lctest.behat.yml"
+    ],
+    "main": "bin/lctest",
+    "output": "livecontracts-tester.phar",
+    "stub": true
+}
+

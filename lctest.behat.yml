@@ -11,7 +11,7 @@ default: &DEFAULT
                 - \LTO\LiveContracts\Tester\EventChainContext
                 - \LTO\LiveContracts\Tester\ProcessContext
             db:
-                dsn: mongodb://localhost:27017
+                dsn: mongodb://localhost:27747
                 databases:
                     - lto_eventchain
                     - lto_workflow
@@ -20,7 +20,7 @@ debug:
     suites:
         default:
             db:
-                dsn: mongodb://localhost:27017
+                dsn: mongodb://localhost:27747
                 databases:
                     - lto_eventchain
                     - lto_workflow
