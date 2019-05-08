@@ -7,6 +7,6 @@
       "lctest.behat.yml"
     ],
     "main": "bin/lctest",
-    "output": "livecontracts-tester.phar",
+    "output": "lctest.phar",
     "stub": true
 }
