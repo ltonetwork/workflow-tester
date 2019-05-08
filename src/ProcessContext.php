@@ -115,6 +115,8 @@ class ProcessContext implements Context
 
         $chain = $this->chainContext->getChain();
         $chain->add(new Event($process))->signWith($account);
+
+        $process->isStarted(true);
     }
 
 
@@ -151,7 +153,7 @@ class ProcessContext implements Context
     {
         $process = $this->getProcess($processRef);
 
-        if ($process->getProjection() !== null) {
+        if ($process->isStarted()) {
             Assert::fail("Process \"$processRef\" is already started");
         }
 
@@ -192,7 +194,7 @@ class ProcessContext implements Context
             Assert::fail("\"$accountRef\" is not an actor of the \"$processRef\" process");
         }
 
-        if ($process->getProjection() === null) {
+        if (!$process->isStarted()) {
             $this->addProcessToChain($process);
         }
 

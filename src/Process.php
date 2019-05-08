@@ -55,6 +55,12 @@ class Process implements JsonSerializable
     protected $creator;
 
     /**
+     * @var bool
+     */
+    protected $started = false;
+
+
+    /**
      * Process constructor.
      *
      * @param EventChain  $chain
@@ -66,6 +72,21 @@ class Process implements JsonSerializable
         $this->id = $chain->createResourceId($ref);
     }
 
+
+    /**
+     * Check if the process has been started or mark the process as started.
+     *
+     * @param bool|null $set
+     * @return bool
+     */
+    public function isStarted(?bool $set = null)
+    {
+        if ($set !== null) {
+            $this->started = $set;
+        }
+
+        return $this->started;
+    }
 
     /**
      * Set the creator of the process
