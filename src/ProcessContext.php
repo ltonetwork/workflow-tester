@@ -255,6 +255,14 @@ class ProcessContext implements Context
     }
 
     /**
+     * @Then the :processRef process is cancelled
+     */
+    public function checkCancelled(string $processRef): void
+    {
+        $this->checkState($processRef, ':cancelled');
+    }
+
+    /**
      * @Then the :processRef process has failed
      */
     public function checkFailed(string $processRef): void
