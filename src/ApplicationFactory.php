@@ -87,7 +87,7 @@ final class ApplicationFactory extends BaseFactory
             new SpecificationExtension($processor),
             new FilesystemExtension(),
             new ContextExtension($processor),
-            new SnippetExtension($processor),
+            // new SnippetExtension($processor), /* Don't create snippet for missing rules */
             new DefinitionExtension($processor),
             new EventDispatcherExtension($processor),
             new HookExtension(),
