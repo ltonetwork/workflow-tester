@@ -208,6 +208,21 @@ class ProcessContext implements Context
     }
 
     /**
+     * @Then the :actorKey actor in the :processRef process has:
+     */
+    public function checkActor(string $processRef, string $actorKey, TableNode $table): void
+    {
+        $process = $this->getProcess($processRef);
+        $projection = $this->getProjection($process);
+
+        Assert::assertArrayHasKey($actorKey, $projection['actors']);
+
+        if (isset($table)) {
+            Assert::assertArrayByDotkey($this->tableToPairs($table), $projection['actors'][$actorKey]);
+        }
+    }
+
+    /**
      * @Then the :processRef process has asset :assetKey
      * @Then the :processRef process has asset :assetKey with:
      */
