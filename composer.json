@@ -13,7 +13,7 @@
       "bin/lctest"
     ],
     "require": {
-        "php": ">=7.2.0",
+        "php": ">=7.1.0",
         "ext-yaml": "*",
         "ext-json": "*",
         "behat/behat": "^3.5",

@@ -258,7 +258,7 @@ class ProcessContext implements Context
         $projection = $this->getProjection($process);
 
         Assert::assertArrayHasKey('current', $projection);
-        Assert::assertSame($projection['current']['key'], $state);
+        Assert::assertSame($state, $projection['current']['key']);
     }
 
     /**
