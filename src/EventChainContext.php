@@ -268,7 +268,7 @@ class EventChainContext implements Context
         }
 
         $identity = array_reduce($this->chain->identities, function($found, $identity) use ($account) {
-            return $found ?? ($identity->signkeys->user === $account->getPublicSignKey() ? $identity : null);
+            return $found ?? ($identity->signkeys->default === $account->getPublicSignKey() ? $identity : null);
         }, null);
 
         if (!isset($identity)) {
