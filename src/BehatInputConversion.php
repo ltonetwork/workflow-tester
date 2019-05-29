@@ -14,14 +14,15 @@ trait BehatInputConversion
     /**
      * Convert Behat input data to
      *
-     * @param TableNode|null $table
+     * @param TableNode|null    $table
      * @param PyStringNode|null $markdown
+     * @param array             $variables  Variables that can be substituted
      * @return array|null
      */
-    protected function convertInputToData(?TableNode $table, ?PyStringNode $markdown): ?array
+    protected function convertInputToData(?TableNode $table, ?PyStringNode $markdown, array $variables = []): ?array
     {
         if (isset($table)) {
-            return $this->tableToData($table);
+            return $this->tableToData($table, $variables);
         }
 
         if (isset($markdown)) {
@@ -35,15 +36,20 @@ trait BehatInputConversion
      * Convert table to structured data
      *
      * @param TableNode $table
+     * @param array     $variables  Variables that can be substituted
      * @return array
      */
-    protected function tableToData(TableNode $table)
+    protected function tableToData(TableNode $table, array $variables = [])
     {
         $data = (object)[];
         $dotkey = DotKey::on($data);
 
-        foreach ($table->getTable() as $item) {
-            $dotkey->put($item[0], $item[1]);
+        foreach ($table->getTable() as [$key, $value]) {
+            if (preg_match('/^\$\{(.*)\}$/', $value, $matches)) {
+                $value = DotKey::on($variables)->get($matches[1]);
+            }
+
+            $dotkey->put($key, $value);
         }
 
         return (array)$data;
@@ -53,12 +59,22 @@ trait BehatInputConversion
      * Convert table to key/value pairs
      *
      * @param TableNode $table
+     * @param array     $variables  Variables that can be substituted
      * @return array
      */
-    protected function tableToPairs(TableNode $table)
+    protected function tableToPairs(TableNode $table, array $variables = [])
     {
         $entries = $table->getTable();
 
-        return array_combine(array_column($entries, 0), array_column($entries, 1));
+        $keys = array_column($entries, 0);
+        $values = array_column($entries, 1);
+
+        foreach ($values as &$value) {
+            if (preg_match('/^\$\{(.*)\}$/', $value, $matches)) {
+                $value = DotKey::on($variables)->get($matches[1]);
+            }
+        }
+
+        return array_combine($keys, $values);
     }
 }

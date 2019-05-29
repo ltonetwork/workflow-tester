@@ -105,6 +105,20 @@ class ProcessContext implements Context
     }
 
     /**
+     * Return the variables that can be used as table data.
+     *
+     * @return array
+     */
+    protected function getTableDataVariables(): array
+    {
+        return
+            ['today' => date('%Y-%m-%d')] +
+            array_map(function(Process $process) {
+                return $process->getProjection();
+            }, $this->processes);
+    }
+
+    /**
      * Add the process to the event chain
      *
      * @param Process $process
@@ -198,7 +212,7 @@ class ProcessContext implements Context
             $this->addProcessToChain($process);
         }
 
-        $data = $this->convertInputToData($table, $markdown);
+        $data = $this->convertInputToData($table, $markdown, $this->getTableDataVariables());
         $response = $process->createResponse($actionKey, $responseKey, $data);
 
         $chain = $this->chainContext->getChain();
@@ -218,7 +232,8 @@ class ProcessContext implements Context
         Assert::assertArrayHasKey($actorKey, $projection['actors']);
 
         if (isset($table)) {
-            Assert::assertArrayByDotkey($this->tableToPairs($table), $projection['actors'][$actorKey]);
+            $expected = $this->tableToPairs($table, $this->getTableDataVariables());
+            Assert::assertArrayByDotkey($expected, $projection['actors'][$actorKey]);
         }
     }
 
@@ -234,7 +249,8 @@ class ProcessContext implements Context
         Assert::assertArrayHasKey($assetKey, $projection['assets']);
 
         if (isset($table)) {
-            Assert::assertArrayByDotkey($this->tableToPairs($table), $projection['assets'][$assetKey]);
+            $expected = $this->tableToPairs($table, $this->getTableDataVariables());
+            Assert::assertArrayByDotkey($expected, $projection['assets'][$assetKey]);
         }
     }
 

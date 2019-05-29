@@ -218,7 +218,7 @@ class Process implements JsonSerializable
     public function setProjection(array $projection): void
     {
         $this->projection = $projection;
-        $this->eventAtProjection === $this->chain->getLatestHash();
+        $this->eventAtProjection = $this->chain->getLatestHash();
     }
 
     /**
