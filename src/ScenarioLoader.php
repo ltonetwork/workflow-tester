@@ -106,7 +106,25 @@ class ScenarioLoader
      */
     protected function parseYamlScenario(string $file): \stdClass
     {
-        $scenario = yaml_parse_file($file);
+        $tagToStruct = function($value, $tag) {
+            $key = substr($tag, 1);
+            return ["<$key>" => $value];
+        };
+
+        $callbacks = [
+            '!if' => $tagToStruct,
+            '!ref' => $tagToStruct,
+            '!eval' => $tagToStruct,
+            '!ifset' => $tagToStruct,
+            '!switch' => $tagToStruct,
+            '!merge' => $tagToStruct,
+            '!tpl' => $tagToStruct,
+            '!apply' => $tagToStruct,
+            '!dateFormat' => $tagToStruct,
+            '!id' => $tagToStruct,
+        ];
+
+        $scenario = yaml_parse_file($file, 0, $ndocs, $callbacks);
 
         if (!is_array($scenario)) {
             throw new RuntimeException("Unable to load scenario: failed to parse \"$file\"");

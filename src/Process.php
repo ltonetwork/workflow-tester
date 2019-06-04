@@ -133,10 +133,8 @@ class Process implements JsonSerializable
             throw new BadMethodCallException("Scenario already set");
         }
 
-        $this->id = $this->chain->createResourceId('process:' . $name);
-
         $this->scenario = ScenarioLoader::getInstance()->load($name, $path);
-        $this->scenario->id = $this->chain->createResourceId('scenario:' . $path);
+        $this->scenario->id = $this->chain->createResourceId('scenario:' . $name);
     }
 
     /**

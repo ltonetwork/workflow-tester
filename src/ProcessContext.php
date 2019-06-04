@@ -114,7 +114,7 @@ class ProcessContext implements Context
         return
             ['today' => date('%Y-%m-%d')] +
             array_map(function(Process $process) {
-                return $process->getProjection();
+                return $process->getProjection() ?? ['id' => $process->id];
             }, $this->processes);
     }
 

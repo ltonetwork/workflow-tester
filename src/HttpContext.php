@@ -82,6 +82,7 @@ class HttpContext implements Context
                 list($contentType) = explode(';', $response->getHeaderLine('Content-Type'));
 
                 if ($contentType !== 'application/json') {
+                    echo $response->getBody();
                     throw new \UnexpectedValueException("Expected application/json, got $contentType");
                 }
 
