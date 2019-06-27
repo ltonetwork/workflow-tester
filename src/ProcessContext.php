@@ -112,7 +112,7 @@ class ProcessContext implements Context
     protected function getTableDataVariables(): array
     {
         return
-            ['today' => date('%Y-%m-%d')] +
+            ['today' => date('Y-m-d')] +
             array_map(function(Process $process) {
                 return $process->getProjection() ?? ['id' => $process->id];
             }, $this->processes);
