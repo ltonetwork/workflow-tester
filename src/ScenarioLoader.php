@@ -69,15 +69,18 @@ class ScenarioLoader
      */
     protected function findScenarioFile(string $name, string $path): string
     {
+        $paths = [];
+
         foreach (self::SCENARIO_FILES as $option) {
             $file = $path . '/' . sprintf($option, $name);
+            $paths[] = $file;
 
             if (file_exists($file)) {
                 return $file;
             }
         }
 
-        throw new RuntimeException("Unable to load scenario \"$name\". Neither YAML or JSON file found");
+        throw new RuntimeException("Unable to load scenario \"$name\". Neither YAML or JSON file found. Checked paths: " . join(', ', $paths));
     }
 
     /**
