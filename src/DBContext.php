@@ -10,12 +10,16 @@ use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Behat\Hook\Scope\AfterScenarioScope;
 use MongoDB;
 use PHPUnit\Framework\SkippedTestError;
+use Behat\Gherkin\Node\TableNode;
+use MongoDB\Model\BSONDocument;
 
 /**
  * Manage the MongoDB by loading fixtures and cleaning up after each feature.
  */
 class DBContext implements Context
 {
+    use BehatInputConversion;
+
     /**
      * @var MongoDB\Client
      */
@@ -25,7 +29,6 @@ class DBContext implements Context
      * @var string
      */
     protected static $fixturePath;
-
 
     /**
      * Create the MongoDB connection
@@ -142,5 +145,108 @@ class DBContext implements Context
         foreach ($settings['databases'] as $database) {
             self::$mongo->dropDatabase($database);
         }
+    }
+
+    /**
+     * @Then a :method request has been send to :url with:
+     *
+     * @throws PHPUnit\Framework\AssertionFailedError
+     * @param string $method
+     * @param string $url
+     * @param TableNode $table
+     */
+    public function httpRequestIsPresent(string $method, string $url, TableNode $table)
+    {
+        $data = $this->obtainLastFlowHttpRequest();
+        if (!isset($data)) {
+            Assert::fail("No http request found");
+        }
+
+        Assert::assertSame($method, $data['request']['method']);
+        Assert::assertSame($url, $data['request']['url']);
+
+        $expected = $this->tableToPairs($table);
+        $body = $data['request']['body'];
+
+        foreach ($expected as $key => $value) {
+            Assert::assertTrue(isset($body[$key]));
+            Assert::assertSame($value, $body[$key]);
+        }
+
+        $this->last_http_request = $data;
+    }
+
+    /**
+     * @Then that request received a :status response with:
+     *
+     * @param string $status
+     * @param TableNode $table 
+     */
+    public function checkHttpJsonResponse(string $status, TableNode $table)
+    {
+        if (!isset($this->last_http_request)) {
+            Assert::fail("No http request found");
+        }
+
+        $expected = $this->tableToPairs($table);
+        $response = $this->last_http_request['response'];
+        $body = $response['body'];
+
+        Assert::assertSame($status, $response['status']);        
+        Assert::assertTrue(is_array($body), "Invalid response body type: " . gettype($body));
+
+        foreach ($expected as $key => $value) {
+            Assert::assertTrue(isset($body[$key]));
+            Assert::assertSame($value, $body[$key]);
+        }
+    }
+
+    /**
+     * Obtain last captured workflow http request
+     *
+     * @return array
+     */
+    protected function obtainLastFlowHttpRequest()
+    {
+        $mongo = self::$mongo;
+        $database = 'lto_workflow';
+
+        $db = $mongo->selectDatabase($database);
+        $options = [
+            'sort' => ['_id' => -1],
+            'limit' => 1
+        ];
+
+        $result = $db->http_request_logs->find([], $options)->toArray();
+
+        return isset($result[0]) ? $this->formatRequest($result[0]) : null;
+    }
+
+    /**
+     * Format request captured by workflow-engine
+     *
+     * @param MongoDB\Model\BSONDocument $data
+     * @return array
+     */
+    protected function formatRequest(BSONDocument $data)
+    {
+        $request = $data->request;
+        $response = $data->response;
+
+        return [
+            'request' => [
+                'url' => $request->uri,
+                'method' => $request->method,
+                'body' => $request->body instanceof BSONDocument ?
+                    iterator_to_array($request->body) : 
+                    $request->body
+            ],
+            'response' => [
+                'status' => (string)$response->status,
+                'body' => $response->body instanceof BSONDocument ?
+                    iterator_to_array($response->body) : 
+                    $response->body
+            ]
+        ];
     }
 }
