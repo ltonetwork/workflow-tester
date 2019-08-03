@@ -223,6 +223,7 @@ class ProcessContext implements Context
 
     /**
      * @Then the :actorKey actor in the :processRef process has:
+     * @Then the :actorKey actor of the :processRef process has:
      */
     public function checkActor(string $processRef, string $actorKey, TableNode $table): void
     {
