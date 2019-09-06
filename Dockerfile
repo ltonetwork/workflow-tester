@@ -24,6 +24,8 @@ COPY --from=build /var/app /var/app
 RUN ln -s /var/app/bin/lctest /usr/bin/lctest
 RUN echo | pecl install yaml && pecl install base58-0.1.3 && pecl install mongodb && docker-php-ext-enable mongodb base58 yaml
 
+ENV BEHAT_CONFIG /var/app/docker.behat.yml
+
 WORKDIR /livecontracts
 
 ENTRYPOINT ["lctest"]

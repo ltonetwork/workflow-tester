@@ -112,9 +112,11 @@ final class ApplicationFactory extends BaseFactory
     {
         $cwd = rtrim(getcwd(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $homeDir = getenv('HOME');
+        $configPath = getenv('BEHAT_CONFIG');
         $defaultDir = dirname(__DIR__) . DIRECTORY_SEPARATOR;
 
         $paths = array_merge(
+            $configPath ? [$configPath] : [],
             [
                 $cwd . 'behat.yaml',
                 $cwd . 'behat.yml',
